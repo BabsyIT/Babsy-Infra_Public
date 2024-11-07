@@ -3,8 +3,11 @@
 # GitHub Organization name
 ORG="BabsyIT"
 
-# GitHub API token for authentication (replace with your GitHub personal access token)
-GITHUB_TOKEN="your_personal_access_token_here"
+# Prompt for GitHub token if not set
+if [ -z "$GITHUB_TOKEN" ]; then
+    read -sp "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
+    echo
+fi
 
 # GitHub API URL to get members
 GITHUB_API="https://api.github.com/orgs/$ORG/members"
