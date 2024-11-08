@@ -5,7 +5,7 @@ ORG="BabsyIT"
 
 # Prompt for GitHub token if not set
 if [ -z "$GITHUB_TOKEN" ]; then
-    read -sp "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
+    read -p "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
     echo
 fi
 
@@ -35,15 +35,30 @@ fi
 # Fetch members of the organization
 members=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$GITHUB_API" | jq -r '.[].login')
 
+# Check if members were retrieved successfully
+if [ -z "$members" ]; then
+    echo "Error: No members retrieved from GitHub. Check your GitHub token and organization name."
+    exit 1
+fi
+
 # Loop through each member and fetch their SSH keys
 for member in $members; do
-    # Fetch SSH keys for each member
-    keys=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/users/$member/keys" | jq -r '.[].key')
+    # Fetch SSH keys for each member, including the title
+    keys=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/users/$member/keys")
 
-    # Append each key to the temp keys file
-    for key in $keys; do
-        echo "# $member's SSH key" >> "$TEMP_KEYS_FILE"
-        echo "$key" >> "$TEMP_KEYS_FILE"
+    # Check if keys were retrieved successfully
+    if [ -z "$keys" ]; then
+        echo "Warning: No SSH keys found for $member"
+        continue
+    fi
+
+    # Parse and append each key to the temp keys file as a single line
+    echo "$keys" | jq -c '.[]' | while read key_entry; do
+        key=$(echo "$key_entry" | jq -r '.key')
+        title=$(echo "$key_entry" | jq -r '.title')
+
+        # Ensure the key is on a single line and append the title as a comment
+        echo "$key # $title" >> "$TEMP_KEYS_FILE"
     done
 done
 
