@@ -1,7 +1,3 @@
-Absolutely! Here’s a detailed manual for setting up the script to automatically fetch GitHub SSH keys from an organization and store them in a designated `authorized_keys` file on your server.
-
----
-
 ## Manual: Setting Up Automated GitHub SSH Key Fetching on Your Server
 
 This guide will walk you through setting up a script that retrieves public SSH keys of all members in a GitHub organization and stores them in an authorized keys file on a server. The script will run every hour to update the SSH keys automatically.
