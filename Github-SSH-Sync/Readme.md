@@ -23,7 +23,7 @@ Dieses Skript richtet alles ein, um die öffentlichen SSH-Keys aller Mitglieder 
 Führe den folgenden Befehl aus, um das Setup-Skript herunterzuladen und auszuführen:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/BabsyIT/Babsy-Infra_Public/refs/heads/main/Github-SSH-Sync/update_github_org_ssh_keys.sh | sudo bash
+curl -sL https://raw.githubusercontent.com/BabsyIT/Babsy-Infra_Public/refs/heads/main/Github-SSH-Sync/setup_github_ssh_keys.sh | sudo bash
 ```
 
 ### Was das Skript macht
