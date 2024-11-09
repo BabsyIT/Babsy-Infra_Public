@@ -1,192 +1,67 @@
-## Manual: Setting Up Automated GitHub SSH Key Fetching on Your Server
+## Anleitung: Einrichtung der automatischen GitHub SSH-Key-Aktualisierung
 
-This guide will walk you through setting up a script that retrieves public SSH keys of all members in a GitHub organization and stores them in an authorized keys file on a server. The script will run every hour to update the SSH keys automatically.
+Dieses Skript richtet alles ein, um die öffentlichen SSH-Keys aller Mitglieder einer GitHub-Organisation herunterzuladen und automatisch jede Stunde zu aktualisieren. Der gesamte Prozess wird mit einem einzigen `curl`-Befehl gestartet.
 
-### Prerequisites
-- **Debian 12** or a similar Linux distribution.
-- **GitHub Personal Access Token (PAT)** with the following permissions:
-  - `read:org`: To read organization membership and public information.
-  - `read:user`: To read public user information, including SSH keys.
+### Voraussetzungen
+- **Debian 12** oder eine ähnliche Linux-Distribution.
+- **GitHub Personal Access Token (PAT)** mit den folgenden Berechtigungen:
+  - `read:org`: Um die Mitgliedschaftsinformationen der Organisation zu lesen.
+  - `read:user`: Um die öffentlichen SSH-Keys der Benutzer zu lesen.
 
-### Step 1: Generate a GitHub Personal Access Token (PAT)
+### Schritt 1: Erstelle einen GitHub Personal Access Token (PAT)
 
-1. **Go to GitHub** and navigate to **Settings** > **Developer settings** > **Personal access tokens**.
-2. Click **Generate new token** (or **Generate new token (classic)**, depending on your GitHub version).
-3. Set a **token name** and expiration date as desired.
-4. Under **Select scopes**, enable:
-   - `read:org` for organization membership.
-   - `read:user` for reading public user information, including SSH keys.
-5. Click **Generate token**.
-6. **Copy the token** and save it somewhere safe; you’ll need it in the setup process.
+1. **Gehe zu GitHub** und navigiere zu **Settings** > **Developer settings** > **Personal access tokens**.
+2. Klicke auf **Generate new token** (oder **Generate new token (classic)**).
+3. Wähle einen **Token-Namen** und ein Ablaufdatum.
+4. Unter **Select scopes** aktiviere:
+   - `read:org` für den Zugriff auf die Mitgliedschaftsinformationen der Organisation.
+   - `read:user` für den Zugriff auf öffentliche Benutzerinformationen und SSH-Keys.
+5. Klicke auf **Generate token** und **kopiere den Token**, um ihn später einzugeben.
 
-### Step 2: Download and Set Up the Script with `curl`
+### Schritt 2: Führe das Setup-Skript mit `curl` aus
 
-1. **Open a terminal** on your server.
-2. **Run the following `curl` command** to download the script:
-
-   ```bash
-   curl -o ~/update_github_org_ssh_keys.sh https://raw.githubusercontent.com/BabsyIT/Babsy-Infra_Public/refs/heads/main/Github-SSH-Sync/update_github_org_ssh_keys.sh
-   ```
-
-3. **Make the script executable**:
-
-   ```bash
-   chmod +x ~/update_github_org_ssh_keys.sh
-   ```
-
-### Step 3: Run the Script Manually Once
-
-Run the script manually to perform the initial setup. The script will prompt you for your GitHub PAT if it’s not provided as an environment variable.
+Führe den folgenden Befehl aus, um das Setup-Skript herunterzuladen und auszuführen:
 
 ```bash
-~/update_github_org_ssh_keys.sh
+curl -sL https://example.com/path/to/setup_github_ssh_keys.sh | sudo bash
 ```
 
-The script will:
-- **Install `jq`** if it's not already installed (used for JSON parsing).
-- **Fetch SSH keys** from the GitHub organization members.
-- **Create or update** the `github_authorized_keys` file with these keys, ensuring each key is on a single line with an identifier for easy reference.
-- **Modify `sshd_config`** to include this file for SSH authentication.
-- **Set up a cron job** to update the keys every hour automatically.
+### Was das Skript macht
 
-### Step 4: Verify the SSH Configuration
+Das Skript erledigt die folgenden Schritte automatisch:
 
-To ensure the SSH configuration was modified successfully:
+1. **Speicherung des GitHub PAT-Tokens**: Du wirst aufgefordert, deinen GitHub PAT-Token einzugeben, der dann sicher in `/opt/github-ssh/.github_token` gespeichert wird.
+2. **Erstellung des Hauptskripts**: Es wird das Skript `/opt/github-ssh/update_github_org_ssh_keys.sh` erstellt, welches die SSH-Keys der GitHub-Organisation abruft und speichert.
+3. **Installation von `jq`**: Falls `jq` nicht installiert ist, wird es für die Verarbeitung von JSON-Daten automatisch installiert.
+4. **Einrichtung eines Cronjobs**: Ein Cronjob wird erstellt, der das Skript jede Stunde ausführt, um die SSH-Keys der Organisation zu aktualisieren.
 
-1. Open `sshd_config`:
+### Überprüfung der Einrichtung
+
+1. **Manuelles Ausführen des Hauptskripts**:
+
+   Um sicherzustellen, dass das Skript korrekt funktioniert, kannst du es manuell ausführen:
+
    ```bash
-   sudo nano /etc/ssh/sshd_config
+   sudo /opt/github-ssh/update_github_org_ssh_keys.sh
    ```
 
-2. Look for the line:
-   ```plaintext
-   AuthorizedKeysFile .ssh/authorized_keys .ssh/github_authorized_keys
-   ```
+2. **Überprüfen des Cronjobs**:
 
-3. If the line exists, the SSH server is configured to check both `authorized_keys` and `github_authorized_keys` for allowed SSH keys.
+   Der folgende Befehl zeigt den Cronjob an, der das Skript jede Stunde ausführt:
 
-4. Close the file by pressing `CTRL + X`.
-
-### Step 5: Verify the Cron Job
-
-To confirm that the cron job was created:
-
-1. Open the cron jobs list:
    ```bash
-   crontab -l
+   sudo crontab -l | grep update_github_org_ssh_keys.sh
    ```
 
-2. You should see an entry similar to:
+   Die Ausgabe sollte so aussehen:
+   
    ```plaintext
-   0 * * * * /path/to/update_github_org_ssh_keys.sh
+   0 * * * * /opt/github-ssh/update_github_org_ssh_keys.sh
    ```
-   This ensures the script will run every hour to fetch and update SSH keys.
 
-### Script Explanation
+### Hinweise zur weiteren Nutzung
 
-Each time the script runs, it:
-1. **Retrieves all members** of the specified GitHub organization.
-2. **Fetches each member’s public SSH keys** and stores them in the `github_authorized_keys` file.
-3. **Adds the key title as a comment** next to each key for identification.
-4. **Restarts the SSH service** (if needed) to apply the updated configuration.
+- **Manuelles Aktualisieren**: Das Skript kann jederzeit manuell ausgeführt werden, um die SSH-Keys sofort zu aktualisieren.
+- **Automatische Aktualisierung**: Der Cronjob sorgt dafür, dass die SSH-Keys jede Stunde aktualisiert werden, ohne weiteres Zutun.
 
-### Script Source Code
-
-Here's the source code of the script you just set up. Feel free to modify the file path for the authorized keys file or change the frequency of the cron job as needed.
-
-```bash
-#!/bin/bash
-
-# GitHub Organization name
-ORG="BabsyIT"
-
-# Prompt for GitHub token if not set
-if [ -z "$GITHUB_TOKEN" ]; then
-    read -sp "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
-    echo
-fi
-
-# GitHub API URL to get members
-GITHUB_API="https://api.github.com/orgs/$ORG/members"
-
-# Paths for the keys file and sshd config
-TEMP_KEYS_FILE="/tmp/github_ssh_keys"
-GITHUB_AUTHORIZED_KEYS_FILE="$HOME/.ssh/github_authorized_keys"
-SSHD_CONFIG="/etc/ssh/sshd_config"
-CRON_JOB="0 * * * * /path/to/update_github_org_ssh_keys.sh"
-
-# Ensure .ssh directory exists
-mkdir -p "$HOME/.ssh"
-
-# Install jq if not already installed
-if ! command -v jq &> /dev/null; then
-    echo "jq is not installed. Installing jq..."
-    sudo apt-get update
-    sudo apt-get install -y jq
-    echo "jq installed successfully."
-fi
-
-# Clear temp keys file
-> "$TEMP_KEYS_FILE"
-
-# Fetch members of the organization
-members=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "$GITHUB_API" | jq -r '.[].login')
-
-# Check if members were retrieved successfully
-if [ -z "$members" ]; then
-    echo "Error: No members retrieved from GitHub. Check your GitHub token and organization name."
-    exit 1
-fi
-
-# Loop through each member and fetch their SSH keys
-for member in $members; do
-    # Fetch SSH keys for each member, including the title
-    keys=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/users/$member/keys")
-
-    # Check if keys were retrieved successfully
-    if [ -z "$keys" ]; then
-        echo "Warning: No SSH keys found for $member"
-        continue
-    fi
-
-    # Parse and append each key to the temp keys file as a single line
-    echo "$keys" | jq -c '.[]' | while read key_entry; do
-        key=$(echo "$key_entry" | jq -r '.key')
-        title=$(echo "$key_entry" | jq -r '.title')
-
-        # Ensure the key is on a single line and append the title as a comment
-        echo "$key # $title" >> "$TEMP_KEYS_FILE"
-    done
-done
-
-# Replace the github_authorized_keys file with the updated keys
-mv "$TEMP_KEYS_FILE" "$GITHUB_AUTHORIZED_KEYS_FILE"
-chmod 600 "$GITHUB_AUTHORIZED_KEYS_FILE"
-echo "GitHub SSH keys updated at $(date)"
-
-# Check and modify sshd_config if necessary
-if ! grep -q "$GITHUB_AUTHORIZED_KEYS_FILE" "$SSHD_CONFIG"; then
-    echo "Modifying $SSHD_CONFIG to include github_authorized_keys"
-    echo "AuthorizedKeysFile .ssh/authorized_keys .ssh/github_authorized_keys" | sudo tee -a "$SSHD_CONFIG" > /dev/null
-    sudo systemctl restart ssh
-    echo "sshd_config updated and SSH service restarted."
-else
-    echo "$SSHD_CONFIG already configured for github_authorized_keys."
-fi
-
-# Add cron job if it doesn't already exist
-(crontab -l | grep -q "$GITHUB_AUTHORIZED_KEYS_FILE") || (crontab -l; echo "$CRON_JOB") | crontab -
-echo "Cron job created to run every hour."
-```
-
-### Troubleshooting
-
-- **Permission Denied Errors**: Ensure that `github_authorized_keys` has `600` permissions. The script sets these automatically.
-- **Rate Limits**: Without a GitHub token, the API requests may be limited for larger organizations or frequent updates. Ensure the `GITHUB_TOKEN` variable is correctly set.
-
-### Notes
-
-- This setup assumes you have root access or sudo privileges to modify `sshd_config` and manage cron jobs.
-- Make sure you store your GitHub token securely and avoid exposing it.
-
-With this setup, your server will automatically fetch and update GitHub organization member SSH keys every hour, allowing seamless access management.
+Mit diesem Setup wird dein Server regelmäßig die öffentlichen SSH-Keys der GitHub-Organisation abrufen und in der Datei `~/.ssh/github_authorized_keys` speichern, sodass der Zugriff für die Mitglieder der Organisation stets auf dem neuesten Stand ist.
