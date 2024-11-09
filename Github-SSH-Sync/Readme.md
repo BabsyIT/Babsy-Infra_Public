@@ -25,7 +25,7 @@ This guide will walk you through setting up a script that retrieves public SSH k
 2. **Run the following `curl` command** to download the script:
 
    ```bash
-   curl -o ~/update_github_org_ssh_keys.sh https://example.com/path/to/update_github_org_ssh_keys.sh
+   curl -o ~/update_github_org_ssh_keys.sh https://raw.githubusercontent.com/BabsyIT/Babsy-Infra_Public/refs/heads/main/Github-SSH-Sync/update_github_org_ssh_keys.sh
    ```
 
 3. **Make the script executable**:
