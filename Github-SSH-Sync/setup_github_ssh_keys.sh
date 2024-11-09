@@ -5,7 +5,7 @@ ORG="BabsyIT"
 
 # GitHub PAT (Personal Access Token) - wird bei der ersten Ausführung abgefragt
 read -p "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
-echo
+
 
 # Setze Pfade und Dateien
 BASE_DIR="/opt/github-ssh"
@@ -22,6 +22,7 @@ sudo chmod 600 "$TOKEN_FILE"
 # Skript für die Aktualisierung der SSH-Keys erstellen
 echo "Downloading the update script..."
 sudo tee "$SCRIPT_FILE" > /dev/null << 'EOF'
+
 #!/bin/bash
 
 # GitHub Organization name
