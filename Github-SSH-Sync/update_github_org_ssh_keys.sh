@@ -3,20 +3,40 @@
 # GitHub Organization name
 ORG="BabsyIT"
 
-# Prompt for GitHub token if not set
-if [ -z "$GITHUB_TOKEN" ]; then
-    read -p "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
-    echo
-fi
+# GitHub PAT (Personal Access Token) - wird bei der ersten Ausführung angefordert
+read -p "Enter your GitHub Personal Access Token (PAT): " GITHUB_TOKEN
+echo
+
+# Setze Pfade und Dateien
+BASE_DIR="/opt/github-ssh"
+TOKEN_FILE="$BASE_DIR/.github_token"
+SCRIPT_FILE="$BASE_DIR/update_github_org_ssh_keys.sh"
+CRON_JOB="0 * * * * $SCRIPT_FILE"
+
+# Verzeichnis erstellen und Berechtigungen setzen
+echo "Setting up the directory and saving the GitHub token securely..."
+sudo mkdir -p "$BASE_DIR"
+echo "$GITHUB_TOKEN" | sudo tee "$TOKEN_FILE" > /dev/null
+sudo chmod 600 "$TOKEN_FILE"
+
+# Skript für die Aktualisierung der SSH-Keys erstellen
+echo "Downloading the update script..."
+sudo tee "$SCRIPT_FILE" > /dev/null << 'EOF'
+#!/bin/bash
+
+# GitHub Organization name
+ORG="BabsyIT"
 
 # GitHub API URL to get members
 GITHUB_API="https://api.github.com/orgs/$ORG/members"
+
+# Load GitHub token from file
+GITHUB_TOKEN=$(cat /opt/github-ssh/.github_token)
 
 # Paths for the keys file and sshd config
 TEMP_KEYS_FILE="/tmp/github_ssh_keys"
 GITHUB_AUTHORIZED_KEYS_FILE="$HOME/.ssh/github_authorized_keys"
 SSHD_CONFIG="/etc/ssh/sshd_config"
-CRON_JOB="0 * * * * /path/to/update_github_org_ssh_keys.sh"
 
 # Ensure .ssh directory exists
 mkdir -p "$HOME/.ssh"
@@ -76,7 +96,14 @@ if ! grep -q "$GITHUB_AUTHORIZED_KEYS_FILE" "$SSHD_CONFIG"; then
 else
     echo "$SSHD_CONFIG already configured for github_authorized_keys."
 fi
+EOF
 
-# Add cron job if it doesn't already exist
-(crontab -l | grep -q "$GITHUB_AUTHORIZED_KEYS_FILE") || (crontab -l; echo "$CRON_JOB") | crontab -
-echo "Cron job created to run every hour."
+# Skript ausführbar machen
+sudo chmod +x "$SCRIPT_FILE"
+
+# Cronjob hinzufügen, falls er nicht existiert
+echo "Setting up the cron job to run the script every hour..."
+(sudo crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo crontab -
+
+echo "Setup complete. The script will now run every hour to update SSH keys."
+echo "You can manually run it with: sudo $SCRIPT_FILE"
